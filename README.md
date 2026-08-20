@@ -1,13 +1,15 @@
 # Threaded Forth Experiments
 
 Two deliberately small Forth-like VMs demonstrate Clang's computed-goto
-extension and globally exported C labels. Both execute:
+extension and globally exported C labels. Both execute arithmetic followed by
+a nested function call:
 
 ```forth
-2 3 + dup * .  10 4 - .
+2 3 + dup * .  10 4 - .  3 quadruple .
 ```
 
-and print `25` followed by `6`.
+and print `25`, `6`, and `12`. `quadruple` calls a separate `double_value`
+function twice, exercising the VMs' return stacks.
 
 ## Variants
 
@@ -29,9 +31,13 @@ object. Client code therefore uses `&forth_direct_push`, never the value of
 `forth_direct_push`. The address expression creates a normal linker relocation
 which is resolved against the global assembler label in the VM object file.
 
+`call` is followed by a cell containing the callee's first instruction. `ret`
+resumes at the instruction after that operand cell. Functions share the data
+stack with their callers and use a separate return stack.
+
 These are execution-core examples rather than complete Forth systems: source
-parsing, a dictionary, stack checks, and colon definitions are intentionally
-left out.
+parsing, a dictionary, stack checks, and source-level colon definitions are
+intentionally left out.
 
 ## Build and test
 

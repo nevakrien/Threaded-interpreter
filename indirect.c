@@ -49,6 +49,16 @@ GLOBAL_LABEL(forth_indirect_print)
     printf("%ld\n", (long)POP());
     NEXT();
 
+GLOBAL_LABEL(forth_indirect_call)
+    ++vm->ip;
+    *vm->rp++ = vm->ip + 1;
+    vm->ip = vm->ip->target;
+    goto *vm->ip->opcode->code;
+
+GLOBAL_LABEL(forth_indirect_ret)
+    vm->ip = *--vm->rp;
+    goto *vm->ip->opcode->code;
+
 GLOBAL_LABEL(forth_indirect_halt)
     return;
 }

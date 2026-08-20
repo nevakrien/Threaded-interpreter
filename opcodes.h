@@ -22,12 +22,15 @@
 typedef union DirectCell {
     const void *opcode;
     intptr_t value;
+    const union DirectCell *target;
 } DirectCell;
 
 typedef struct DirectVM {
     const DirectCell *ip;
     intptr_t stack[64];
     intptr_t *sp;
+    const DirectCell *return_stack[64];
+    const DirectCell **rp;
 } DirectVM;
 
 /* An indirect-threaded instruction points here, then follows code. */
@@ -38,12 +41,15 @@ typedef struct IndirectOpcode {
 typedef union IndirectCell {
     const IndirectOpcode *opcode;
     intptr_t value;
+    const union IndirectCell *target;
 } IndirectCell;
 
 typedef struct IndirectVM {
     const IndirectCell *ip;
     intptr_t stack[64];
     intptr_t *sp;
+    const IndirectCell *return_stack[64];
+    const IndirectCell **rp;
 } IndirectVM;
 
 /*
@@ -56,6 +62,8 @@ extern const void *const forth_direct_sub;
 extern const void *const forth_direct_mul;
 extern const void *const forth_direct_dup;
 extern const void *const forth_direct_print;
+extern const void *const forth_direct_call;
+extern const void *const forth_direct_ret;
 extern const void *const forth_direct_halt;
 
 #define DIRECT_OPCODE(name) ((const void *)&forth_direct_##name)
@@ -66,6 +74,8 @@ extern const void *const forth_indirect_sub;
 extern const void *const forth_indirect_mul;
 extern const void *const forth_indirect_dup;
 extern const void *const forth_indirect_print;
+extern const void *const forth_indirect_call;
+extern const void *const forth_indirect_ret;
 extern const void *const forth_indirect_halt;
 
 #define INDIRECT_CODE(name) ((const void *)&forth_indirect_##name)

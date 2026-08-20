@@ -2,11 +2,12 @@
 set -eu
 
 expected='25
-6'
+6
+12'
 
 # Before linking, clients must have unresolved opcode-label references and the
 # VM objects must export definitions for the linker to resolve.
-for op in push add sub mul dup print halt; do
+for op in push add sub mul dup print call ret halt; do
     nm direct_test.o | grep -q " U forth_direct_${op}$"
     nm direct.o | grep -q " T forth_direct_${op}$"
     nm indirect_test.o | grep -q " U forth_indirect_${op}$"
