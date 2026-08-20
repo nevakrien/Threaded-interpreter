@@ -1,8 +1,8 @@
 # Threaded Forth Experiments
 
 Two deliberately small Forth-like VMs demonstrate Clang's computed-goto
-extension and globally exported C labels. Both execute arithmetic followed by
-a nested function call:
+extension and runtime-initialized opcode tables. Both execute arithmetic
+followed by a nested function call:
 
 ```forth
 2 3 + dup * .  10 4 - .  3 quadruple .
@@ -13,23 +13,23 @@ function twice, exercising the VMs' return stacks.
 
 ## Variants
 
-- `direct.c`: the VM core exports each handler label. Dispatch is
-  `goto *ip->opcode`.
-- `direct_test.c`: a separate translation unit links against those labels and
-  places their addresses directly in its instruction stream.
-- `indirect.c`: another VM core exports its handler labels. Dispatch is
-  `goto *ip->opcode->code`.
-- `indirect_test.c`: separately linked code fields contain the exported label
-  addresses, and its instruction stream points to those fields.
-- `opcodes.h`: declares the exported label symbols as `extern void *`.
-- `clang-hell.c`: always-inlines one exported-label helper into repeated direct,
-  static-function, and externally visible function call paths, then verifies
-  that every path returns the exact same address.
+- `direct.c`: `direct_init()` fills the global direct opcode table with local
+  handler addresses. Dispatch is `goto *ip->opcode`.
+- `direct_test.c`: initializes that table and places its entries directly in
+  the instruction stream.
+- `indirect.c`: `indirect_init()` fills a corresponding indirect opcode table.
+  Dispatch is `goto *ip->opcode->code`.
+- `indirect_test.c`: separately allocated code fields contain entries copied
+  from that table, and its instruction stream points to those fields.
+- `opcodes.h`: defines the typed opcode tables and their initialization API.
+- `clang-hell.c`: a standalone experiment showing why exported or escaped local
+  labels are not used by the VMs. It is intentionally outside the default
+  build and test path.
 
-An exported name denotes a location in executable code, not a real C pointer
-object. Client code therefore uses `&forth_direct_push`, never the value of
-`forth_direct_push`. The address expression creates a normal linker relocation
-which is resolved against the global assembler label in the VM object file.
+Clients must call `direct_init()` or `indirect_init()` before reading the
+corresponding global table. Initialization is idempotent. Handler addresses are
+obtained with Clang's `&&label` extension and are only dispatched inside the
+function containing those labels; no code location is declared as a C object.
 
 `call` is followed by a cell containing the callee's first instruction. `ret`
 resumes at the instruction after that operand cell. Functions share the data
@@ -41,16 +41,18 @@ intentionally left out.
 
 ## Build and test
 
-Clang is required because the label addresses escape through inline assembly.
+Clang is required by this experiment's current compiler guard. The VM opcode
+tables themselves are populated with Clang's computed-goto extension and do not
+use inline assembly.
 
 ```sh
 make
 ./direct
 ./indirect
-./clang-hell
 make test
 ```
 
-`make test` also uses `nm` to prove that each client object has an undefined
-opcode reference and that the corresponding VM object exports a text symbol,
-before running the linked executables.
+`make test` also uses `nm` to prove that each client refers to its global opcode
+table and that the corresponding VM object defines it, before running the
+linked executables. `make clang-hell` builds the separate assembler-label
+experiment, whose behavior is not part of the VM's guarantees.

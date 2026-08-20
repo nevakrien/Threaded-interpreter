@@ -2,6 +2,8 @@
 
 int main(void)
 {
+    indirect_init();
+
     /* Code fields live here, separately from their exported code labels. */
     const IndirectOpcode push = {INDIRECT_CODE(push)};
     const IndirectOpcode add = {INDIRECT_CODE(add)};

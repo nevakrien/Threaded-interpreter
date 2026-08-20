@@ -52,35 +52,29 @@ typedef struct IndirectVM {
     const IndirectCell **rp;
 } IndirectVM;
 
-/*
- * These names are linker-visible code labels, not pointer objects. Always use
- * &forth_* to obtain an opcode; evaluating forth_* would read code as data.
- */
-extern const void *const forth_direct_push;
-extern const void *const forth_direct_add;
-extern const void *const forth_direct_sub;
-extern const void *const forth_direct_mul;
-extern const void *const forth_direct_dup;
-extern const void *const forth_direct_print;
-extern const void *const forth_direct_call;
-extern const void *const forth_direct_ret;
-extern const void *const forth_direct_halt;
+typedef struct DirectOpcodes {
+    const void *push;
+    const void *add;
+    const void *sub;
+    const void *mul;
+    const void *dup;
+    const void *print;
+    const void *call;
+    const void *ret;
+    const void *halt;
+} DirectOpcodes;
 
-#define DIRECT_OPCODE(name) ((const void *)&forth_direct_##name)
+typedef DirectOpcodes IndirectOpcodes;
 
-extern const void *const forth_indirect_push;
-extern const void *const forth_indirect_add;
-extern const void *const forth_indirect_sub;
-extern const void *const forth_indirect_mul;
-extern const void *const forth_indirect_dup;
-extern const void *const forth_indirect_print;
-extern const void *const forth_indirect_call;
-extern const void *const forth_indirect_ret;
-extern const void *const forth_indirect_halt;
+extern DirectOpcodes forth_direct_opcodes;
+extern IndirectOpcodes forth_indirect_opcodes;
 
-#define INDIRECT_CODE(name) ((const void *)&forth_indirect_##name)
+#define DIRECT_OPCODE(name) (forth_direct_opcodes.name)
+#define INDIRECT_CODE(name) (forth_indirect_opcodes.name)
 
+void direct_init(void);
 void direct_run(DirectVM *vm);
+void indirect_init(void);
 void indirect_run(IndirectVM *vm);
 
 #endif

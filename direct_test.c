@@ -2,6 +2,8 @@
 
 int main(void)
 {
+    direct_init();
+
     const DirectCell double_value[] = {
         {.opcode = DIRECT_OPCODE(dup)},
         {.opcode = DIRECT_OPCODE(add)},
@@ -12,7 +14,7 @@ int main(void)
         {.opcode = DIRECT_OPCODE(call)}, {.target = double_value},
         {.opcode = DIRECT_OPCODE(ret)},
     };
-    /* Every opcode here is an extern symbol defined in direct.c. */
+    /* Every opcode here comes from the table initialized by direct_init(). */
     const DirectCell program[] = {
         {.opcode = DIRECT_OPCODE(push)}, {.value = 2},
         {.opcode = DIRECT_OPCODE(push)}, {.value = 3},

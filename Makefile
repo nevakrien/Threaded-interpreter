@@ -3,7 +3,7 @@ CFLAGS := -std=gnu11 -O2 -Wall -Wextra -Wpedantic -Wno-gnu-label-as-value
 
 .PHONY: all test clean
 
-all: direct indirect clang-hell
+all: direct indirect
 
 direct: direct.o direct_test.o
 	$(CC) $^ -o $@
