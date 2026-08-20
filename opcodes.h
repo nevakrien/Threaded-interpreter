@@ -50,23 +50,23 @@ typedef struct IndirectVM {
  * These names are linker-visible code labels, not pointer objects. Always use
  * &forth_* to obtain an opcode; evaluating forth_* would read code as data.
  */
-extern void *forth_direct_push;
-extern void *forth_direct_add;
-extern void *forth_direct_sub;
-extern void *forth_direct_mul;
-extern void *forth_direct_dup;
-extern void *forth_direct_print;
-extern void *forth_direct_halt;
+extern const void *const forth_direct_push;
+extern const void *const forth_direct_add;
+extern const void *const forth_direct_sub;
+extern const void *const forth_direct_mul;
+extern const void *const forth_direct_dup;
+extern const void *const forth_direct_print;
+extern const void *const forth_direct_halt;
 
 #define DIRECT_OPCODE(name) ((const void *)&forth_direct_##name)
 
-extern void *forth_indirect_push;
-extern void *forth_indirect_add;
-extern void *forth_indirect_sub;
-extern void *forth_indirect_mul;
-extern void *forth_indirect_dup;
-extern void *forth_indirect_print;
-extern void *forth_indirect_halt;
+extern const void *const forth_indirect_push;
+extern const void *const forth_indirect_add;
+extern const void *const forth_indirect_sub;
+extern const void *const forth_indirect_mul;
+extern const void *const forth_indirect_dup;
+extern const void *const forth_indirect_print;
+extern const void *const forth_indirect_halt;
 
 #define INDIRECT_CODE(name) ((const void *)&forth_indirect_##name)
 
