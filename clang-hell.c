@@ -1,5 +1,6 @@
 #include "opcodes.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 extern void *clang_hell_shared_label;
@@ -12,13 +13,13 @@ GLOBAL_LABEL(clang_hell_shared_label)
 
 static __attribute__((noinline)) const void *static_route_one(void)
 {
-     asm __volatile__ ("nop");
+    __asm__ __volatile__("nop");
     return clang_hell_label();
 }
 
 static __attribute__((noinline)) const void *static_route_two(void)
-{   
-    asm __volatile__ ("nop");
+{
+    __asm__ __volatile__("nop");
     return clang_hell_label();
 }
 
@@ -57,13 +58,19 @@ int main(void)
     };
     int errored = 0;
     for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); ++i) {
-        if (labels[i] != expected) {
+        volatile uintptr_t actual_bits = (uintptr_t)labels[i];
+        volatile uintptr_t expected_bits = (uintptr_t)expected;
+
+        /* Compare representations; Clang knows the two C pointer origins differ. */
+        if (actual_bits != expected_bits) {
             fprintf(stderr, "route %zu returned %p, expected %p\n", i,
                     labels[i], expected);
+            errored = 1;
         }
     }
 
-    if(errored) return 1;
+    if (errored)
+        return 1;
 
     printf("all routes returned %p\n", expected);
     return 0;

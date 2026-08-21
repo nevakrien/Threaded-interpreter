@@ -1,58 +1,86 @@
-# Threaded Forth Experiments
+# Threaded Interpreter Experiments
 
-Two deliberately small Forth-like VMs demonstrate Clang's computed-goto
-extension and runtime-initialized opcode tables. Both execute arithmetic
-followed by a nested function call:
+This repositry is showing some example with threaded intetpters. 
+It is somewhat of a compiler test to clang as well, specifically to see how it handles escaping labels.
 
-```forth
-2 3 + dup * .  10 4 - .  3 quadruple .
+The core idea behind a threaded interpter is we use actual assembly addresses to encode our next step.
+Then the interpter does
+```asm
+jmp rdi
 ```
 
-and print `25`, `6`, and `12`. `quadruple` calls a separate `double_value`
-function twice, exercising the VMs' return stacks.
+as the way to get to the next place. Instead of needing to make some math first, and only then know where to jump.
 
-## Variants
+The result of this is a weird form of outlined assembly that is just connected in the entire process. Every function is a bunch of.
 
-- `direct.c`: `direct_init()` fills the global direct opcode table with local
-  handler addresses. Dispatch is `goto *ip->opcode`.
-- `direct_test.c`: initializes that table and places its entries directly in
-  the instruction stream.
-- `indirect.c`: `indirect_init()` fills a corresponding indirect opcode table.
-  Dispatch is `goto *ip->opcode->code`.
-- `indirect_test.c`: separately allocated code fields contain entries copied
-  from that table, and its instruction stream points to those fields.
-- `opcodes.h`: defines the typed opcode tables and their initialization API.
-- `clang-hell.c`: a standalone experiment showing why exported or escaped local
-  labels are not used by the VMs. It is intentionally outside the default
-  build and test path.
-
-Clients must call `direct_init()` or `indirect_init()` before reading the
-corresponding global table. Initialization is idempotent. Handler addresses are
-obtained with Clang's `&&label` extension and are only dispatched inside the
-function containing those labels; no code location is declared as a C object.
-
-`call` is followed by a cell containing the callee's first instruction. `ret`
-resumes at the instruction after that operand cell. Functions share the data
-stack with their callers and use a separate return stack.
-
-These are execution-core examples rather than complete Forth systems: source
-parsing, a dictionary, stack checks, and source-level colon definitions are
-intentionally left out.
-
-## Build and test
-
-Clang is required by this experiment's current compiler guard. The VM opcode
-tables themselves are populated with Clang's computed-goto extension and do not
-use inline assembly.
-
-```sh
-make
-./direct
-./indirect
-make test
+```
+[OP0 OP1 OP2 OP3 ...]
 ```
 
-`make test` also uses `nm` to prove that each client refers to its global opcode
-table and that the corresponding VM object defines it, before running the
-linked executables. `make clang-hell` builds the separate assembler-label
-experiment, whose behavior is not part of the VM's guarantees.
+which then either directly or indirectly point at underlying assembly
+```
+OP0:[machine_code ...]
+OP1:[machine_code ...]
+OP2:[machine_code ...]
+```
+That machine code gets excuted directly, so in effect this is almost a JIT.
+In fact this sort of aproch can be very friendly to simple JITs, sine with the indirect threaded version we have.
+
+```
+OP0: [ASM_PTR, DATA]
+```
+
+which for functions is
+```
+OP_CALL_F: [CALL, FUNC_START]
+```
+
+replacing that pointer to call with a pointer to the compiled function is easy enough.
+With relaxed atomics its fairly cheap as well.
+
+The JITed code can now run directly after the interpter.
+
+You could also just take the machine code pointed to by all the diffrent OPs, and inline it. At that point you have made a very basic JIT. So the boundry here is not super clear cut
+
+# Encoding Ops
+So because we need that assembly pointer life is a bit tricky. We can just make 1 giant non stoping function that does both the encoding and the runing. For something like forth thats what they do.
+
+We can inlinze some global table somewhere with all our internal labels, this is what erlang does.
+
+If we change how we write this we can rely on TCO, this would add some additional issues around the calling convention.  You would want MUST_TAIL in all your recursions. and then preserve-none to let the compiler use all the registers it can want.
+
+Or... we can do some weird assembly hacks
+
+# Weird Hack
+
+So it would be nice if we could actually access the labels in the function.
+This lets us set up opcodes in tables in C and then give them to our interpter. 
+
+The nicest thing is that those tables can now be in global static const arrays. 
+Which other aproches dont let us do (except the TCO one).
+
+So... we hack the clang assembler a bit and hope for the best.
+
+```c
+#define GLOBAL_LABEL(export_name)                           \
+    __c_label_##export_name:                               \
+    __asm__ __volatile__(                                  \
+        ".globl " #export_name "\n"                      \
+        #export_name ":\n"                                \
+        :                                                  \
+        : "X"(&&__c_label_##export_name));
+```
+
+and now we have the label in our object so just declare somewhere
+
+```c
+extern const void *const my_label;
+```
+
+and we can get the actual thing. 
+
+
+This does currently work, but I am very unsure if thats intentional behivior. Also fucking it up even a littele bit causes UB. Like the order of the C label and the asm label matters a lot here.
+
+So... you can use that just be responsible about testing it and your specific compiler version.
+It probably would keep working for actually runing code, but it may behave weird in the future if its in a bigger TU or something.

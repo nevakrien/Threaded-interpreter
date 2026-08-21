@@ -72,9 +72,38 @@ extern IndirectOpcodes forth_indirect_opcodes;
 #define DIRECT_OPCODE(name) (forth_direct_opcodes.name)
 #define INDIRECT_CODE(name) (forth_indirect_opcodes.name)
 
+/* These declarations name code locations, not pointer objects. */
+extern const void *const forth_direct_global_push;
+extern const void *const forth_direct_global_add;
+extern const void *const forth_direct_global_sub;
+extern const void *const forth_direct_global_mul;
+extern const void *const forth_direct_global_dup;
+extern const void *const forth_direct_global_print;
+extern const void *const forth_direct_global_call;
+extern const void *const forth_direct_global_ret;
+extern const void *const forth_direct_global_halt;
+
+#define DIRECT_GLOBAL_OPCODE(name) \
+    ((const void *)&forth_direct_global_##name)
+
+extern const void *const forth_indirect_global_push;
+extern const void *const forth_indirect_global_add;
+extern const void *const forth_indirect_global_sub;
+extern const void *const forth_indirect_global_mul;
+extern const void *const forth_indirect_global_dup;
+extern const void *const forth_indirect_global_print;
+extern const void *const forth_indirect_global_call;
+extern const void *const forth_indirect_global_ret;
+extern const void *const forth_indirect_global_halt;
+
+#define INDIRECT_GLOBAL_CODE(name) \
+    ((const void *)&forth_indirect_global_##name)
+
 void direct_init(void);
 void direct_run(DirectVM *vm);
 void indirect_init(void);
 void indirect_run(IndirectVM *vm);
+void direct_global_run(DirectVM *vm);
+void indirect_global_run(IndirectVM *vm);
 
 #endif
